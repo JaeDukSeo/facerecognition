@@ -1,0 +1,265 @@
+<html>
+  <head>
+    <title>Load TensorFlow</title>
+    <meta charset="UTF-8" />
+    <!-- Load TensorFlow.js. This is required to use MobileNet. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <!-- Load the MobileNet model. -->
+    <script src="https://unpkg.com/@tensorflow-models/mobilenet@0.0.1"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r119/three.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <script>
+      function opencvIsReady() {
+        document.getElementById("status").innerHTML = "OpenCV.js is ready.";
+      }
+    </script>
+
+    <!--     <script
+      src="https://docs.opencv.org/master/opencv.js"
+      type="text/javascript"
+      async
+      onload="opencvIsReady()"
+    ></script> -->
+  </head>
+
+  <body onload="">
+    <div style="text-align:center">
+      <h1>
+        Load TensorFlow
+      </h1>
+      <video id="video">Video stream not available.</video>
+      <pre id="predictions"></pre>
+      <canvas id="canvas" style="display:none"></canvas>
+
+      <p id="status">OpenCV.js is loading...</p>
+      <input
+        type="file"
+        id="fileInput"
+        accept="image/gif, image/jpeg, image/png"
+      />
+      <div>
+        <img id="srcImage" />
+        <canvas id="outputCanvas"></canvas>
+      </div>
+
+      <img id="image" width="192px" height="192px" />
+    </div>
+
+    <br />
+    <br />
+    <br />
+    <br />
+    <div id="myDiv"><!-- Plotly chart will be drawn inside this DIV --></div>
+
+    <script>
+      function random_rgba() {
+        var o = Math.round,
+          r = Math.random,
+          s = 255;
+        return "rgb(" + o(r() * s) + "," + o(r() * s) + "," + o(r() * s) + ")";
+      }
+
+      async function only_load_model() {
+        model = await tf.loadGraphModel(
+          "https://raw.githubusercontent.com/JaeDukSeo/aga_khan/master/tfjs_3/model.json"
+        );
+      }
+      async function load_model() {
+        console.log("---------------");
+        model = await tf.loadGraphModel(
+          "https://raw.githubusercontent.com/JaeDukSeo/aga_khan/master/tfjs_3/model.json"
+        );
+        testing = tf.squeeze(model.predict(fromPixels));
+        testing2 = testing.dataSync();
+
+        init(testing2);
+        animate();
+
+        console.log("---------------");
+      }
+
+      let imgElement = document.getElementById("srcImage");
+      let inputElement = document.getElementById("fileInput");
+      let model;
+      var camera, scene, renderer, geometry, material, mesh;
+
+      inputElement.addEventListener(
+        "change",
+        e => {
+          imgElement.src = URL.createObjectURL(e.target.files[0]);
+        },
+        false
+      );
+      imgElement.onload = function() {
+        let mat = cv.imread(imgElement);
+        let dst = new cv.Mat();
+        let dsize = new cv.Size(192, 192);
+        cv.resize(mat, dst, dsize, 0, 0, cv.INTER_AREA);
+        let prediction = model.predict(dst);
+        cv.cvtColor(mat, mat, cv.COLOR_RGBA2GRAY);
+        cv.imshow("outputCanvas", mat);
+        mat.delete();
+        dst.delete();
+      };
+
+      // ------- MAIN
+      let main_img = document.getElementById("image");
+      let testing;
+      main_img.crossOrigin = "anonymous";
+      main_img.src =
+        "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Faaron.jpg?v=1597563255338";
+
+      main_img.onload = () => {
+        // create the tensor after the image has loaded
+        let fromPixels_0 = tf.browser.fromPixels(main_img);
+        fromPixels_1 = tf.unstack(fromPixels_0, 2);
+        fromPixels = tf.transpose(fromPixels_0);
+        fromPixels = fromPixels.expandDims(0);
+        fromPixels = tf.cast(fromPixels, "float32");
+
+        Promise.all([only_load_model()]).then(function() {
+          // all loaded
+          testing = tf.squeeze(model.predict(fromPixels));
+          testing_a = tf.mul(testing, tf.scalar(255));
+          testing_b = testing_a.greater(1);
+          testing_c = tf.mul(testing_a, testing_b);
+          testing_d = tf.unstack(testing);
+          display_data = [];
+
+          color0 = [];
+          for (var color1 = 0; color1 < 192; color1++) {
+            temp = [];
+            for (var color2 = 0; color2 < 192; color2++) {
+              temp.push(random_rgba());
+            }
+            color0.push(temp);
+          }
+          display_data.push({
+            z: tf.max(testing_c, 0).arraySync(),
+            showscale: false,
+            opacity: 0.8,
+            type: "surface",
+            contours: {
+              z: {
+                show: true,
+                usecolormap: true,
+                project: { z: true }
+              }
+            }
+          });
+
+          console.log("------ display -------");
+          Plotly.newPlot("myDiv", display_data);
+          console.log("------ display -------");
+
+          // testing_d0 = tf.mul(testing_c, fromPixels_1[0]);
+          // testing_d1 = tf.mul(testing_c, fromPixels_1[1]);
+          // testing_d2 = tf.mul(testing_c, fromPixels_1[2]);
+          // testing_e = tf.stack([testing_d0, testing_d1, testing_d2], 3);
+        });
+      };
+
+      function init(vertices) {
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(
+          50,
+          window.innerWidth / window.innerHeight,
+          1,
+          10000
+        );
+
+        camera.position.z = 5;
+
+        scene.add(camera);
+
+        geometry = new THREE.BufferGeometry();
+
+        // itemSize = 3 because there are 3 values (components) per vertex
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(vertices, 3)
+        );
+        material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        mesh = new THREE.Mesh(geometry, material);
+
+        scene.add(mesh);
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
+        document.body.appendChild(renderer.domElement);
+      }
+      function animate() {
+        requestAnimationFrame(animate);
+        render();
+      }
+      function render() {
+        // mesh.rotation.x += 0.01;
+        mesh.rotation.y -= 0.002;
+
+        if (mesh.rotation.y < -0.5) {
+          mesh.rotation.y = 0.9;
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      function setup() {
+        let video = document.getElementById("video");
+        let canvas = document.getElementById("canvas");
+        let pre = document.getElementById("predictions");
+        let model = null;
+
+        async function startCamera() {
+          let stream = await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
+          video.srcObject = stream;
+          await video.play();
+
+          setInterval(() => takeSnapshot(), 1000);
+        }
+
+        function takeSnapshot() {
+          let context = canvas.getContext("2d"),
+            width = video.videoWidth,
+            height = video.videoHeight;
+
+          if (width && height) {
+            // Setup a canvas with the same dimensions as the video.
+            canvas.width = width;
+            canvas.height = height;
+
+            // Make a copy of the current frame in the video on the canvas.
+            context.drawImage(video, 0, 0, width, height);
+
+            classifyImage();
+          }
+        }
+
+        async function classifyImage() {
+          predictions = await model.classify(canvas);
+          displayPredictions(predictions);
+        }
+
+        function displayPredictions(predictions) {
+          let val = "";
+
+          for (prediction of predictions) {
+            let perc = (prediction.probability * 100).toFixed(2);
+            val += `${perc}% | ${prediction.className}\n`;
+            console.log(val);
+          }
+          pre.innerHTML = val;
+        }
+
+        async function main() {
+          model = await mobilenet.load();
+          await startCamera();
+        }
+        main();
+      }
+    </script>
+  </body>
+</html>

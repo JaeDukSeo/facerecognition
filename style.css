@@ -1,0 +1,11 @@
+#canvas {
+  display: none;
+  width: 320px;
+  height: 240px;
+}
+
+.camera video,
+.output img {
+  width: 320px;
+  height: 240px;
+}

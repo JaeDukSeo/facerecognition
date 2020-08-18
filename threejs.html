@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - Three.js .glTF 3D Model Display</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+    }
+
+    body {
+      width: 100%;
+      height: auto;
+      background: #000;
+    }
+  </style>
+
+</head>
+
+<body>
+  <!-- partial:index.partial.html -->
+  <!-- three.min.js r87 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.min.js"></script>
+
+  <!-- GLTFLoader.js -->
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r92/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- partial -->
+  <script>
+    var scene, renderer;
+    var camera;
+    var mesh;
+
+    var isMouseDown = false;
+
+    function init() {
+
+      //シーンを作成
+      scene = new THREE.Scene();
+
+      //カメラを作成
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 5;
+      camera.position.y = 5;
+
+      //レンダラーを作成
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+      //背景色を設定
+      renderer.setClearColor(0x00ffff, 1);
+      renderer.gammaOutput = true;
+
+      //光源を作成
+      var light = new THREE.DirectionalLight("#c1582d", 1);
+      var ambient = new THREE.AmbientLight("#85b2cd");
+      light.position.set(0, -70, 100).normalize();
+      scene.add(light);
+      scene.add(ambient);
+
+      var texture = new THREE.Texture();
+      var manager = new THREE.LoadingManager();
+      manager.onProgress = function (item, loaded, total) { };
+      var onProgress = function (xhr) { };
+      var onError = function (xhr) { };
+
+      // 3Dモデル用テクスチャ画像の読込
+      var loader = new THREE.GLTFLoader();
+
+      // Load a glTF resource
+      loader.load(
+        // resource URL
+        "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Fjae.glb?v=1597146444846",
+        // called when the resource is loaded
+        function (gltf) {
+
+          mesh = gltf.scene;
+          mesh.scale.set(1, 1, 1);
+          scene.add(mesh);
+
+          //scene.add( gltf.scene );
+
+          //gltf.animations; // Array<THREE.AnimationClip>
+          //gltf.scene; // THREE.Scene
+          //gltf.scenes; // Array<THREE.Scene>
+          //gltf.cameras; // Array<THREE.Camera>
+          //gltf.asset; // Object
+
+        },
+        // called when loading is in progresses
+        function (xhr) {
+          console.log(xhr.loaded / xhr.total)
+          console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+          if (xhr.loaded / xhr.total >= 1.) {
+            alert("Model loaded please move your mouse!")
+          }
+
+        },
+        // called when loading has errors
+        function (error) {
+
+          console.log('An error happened');
+
+        }
+      );
+
+      document.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("touchstart", onMouseDown);
+      document.addEventListener("mouseup", onMouseUp);
+      document.addEventListener("touchend", onMouseUp);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("touchmove", onMouseMove);
+
+      render();
+    }
+
+    function render() {
+      requestAnimationFrame(render);
+      renderer.render(scene, camera);
+    }
+
+
+    // マウスを押したとき
+    function onMouseDown(event) {
+      isMouseDown = true;
+    }
+
+    // マウスを動かした時
+    function onMouseMove(event) {
+      if (isMouseDown) {
+        // 3DモデルをX軸とY軸方向に回転させます
+        if (mesh) {
+          mesh.rotation.y = getMouseX(event) / 50;
+          mesh.rotation.x = getMouseY(event) / 50;
+
+        }
+      }
+    }
+
+    // マウスを離したとき
+    function onMouseUp(event) {
+      isMouseDown = false;
+    }
+
+    function getMouseX(event) {
+      if (event.type.indexOf("touch") == -1)
+        return event.clientX;
+      else
+        return event.touches[0].clientX;
+    }
+
+    function getMouseY(event) {
+      if (event.type.indexOf("touch") == -1)
+        return event.clientY;
+      else
+        return event.touches[0].clientY;
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+
+  </script>
+
+</body>
+
+</html>

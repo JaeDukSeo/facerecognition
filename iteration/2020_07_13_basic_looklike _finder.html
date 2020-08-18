@@ -1,0 +1,229 @@
+<html>
+  <head>
+    <!--  Face API and CSV API    -->
+    <script src="face-api.min.js"></script>
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+  </head>
+
+  <body>
+    <h3 align="center">
+      Please Click Run
+      <br />
+      <a href="facemesh.html">Face Mesh Demo</a>
+    </h3>
+
+    <div id="myDiv01">
+      Please run the application <br />
+      First LOAD the MODEL then run! (SINGLE FACE)
+    </div>
+    <br />
+    <h1 id="mainheader">
+      You Look Like
+    </h1>
+    <br />
+
+    <input type="button" value="Run" onclick="{ load_weights() }" />
+    <br /><br />
+
+    <video
+      onplay="onPlay(this)"
+      id="inputVideo"
+      autoplay
+      muted
+      width="640"
+      height="480"
+      style=" border: 1px solid #ddd;display: inline;"
+    ></video>
+
+    <img
+      width="640"
+      height="480"
+      id="imageid"
+      src="https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F1.jpg?v=1594348794335"
+      style=" border: 1px solid #ddd;display: inline;"
+    />
+    <br />
+
+    <canvas
+      id="overlay"
+      width="640"
+      height="480"
+      style="position:relative; top:-487px; border: 1px solid #ddd;"
+    ></canvas>
+    <br />
+
+    <script>
+      let predictedAges = [];
+      const main_feature_array = [];
+      const temp_image_url = {
+        1: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F1.jpg?v=1594348794335",
+        2: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F2.jpg?v=1594348798736",
+        3: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F3.jpg?v=1594348802983",
+        4: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F4.jpg?v=1594348795521",
+        5: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F5.jpg?v=1594348803506",
+        6: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F6.jpg?v=1594348804077",
+        7: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F7.jpg?v=1594348805187",
+        8: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F8.jpg?v=1594348805783",
+        9: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F9.jpg?v=1594348807264",
+        10: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F10.jpg?v=1594348807524",
+        11: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F11.jpg?v=1594348796291",
+        12: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F12.jpg?v=1594348807073",
+        13: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F13.jpg?v=1594348799403",
+        14: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F14.jpg?v=1594348799981",
+        15: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F15.jpg?v=1594348796224",
+        16: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F16.jpg?v=1594348795284",
+        17: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F17.jpg?v=1594348796716",
+        18: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F18.jpg?v=1594348800076",
+        19: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F19.jpg?v=1594348797417",
+        20: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F20.jpg?v=1594348795846",
+        21: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F21.jpg?v=1594348802314",
+        22: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F22.jpg?v=1594348797712",
+        23: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F23.jpg?v=1594348802427",
+        24: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F24.jpg?v=1594348804904"
+      };
+      Papa.parse(
+        "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Ffeatures.csv?v=1594600409966",
+        {
+          download: true,
+          complete: function(results) {
+            for (var i = 1; i < results.data.length - 1; i++) {
+              main_feature_array.push(
+                results.data[i][1]
+                  .replace(/, +/g, ",")
+                  .split(",")
+                  .map(Number)
+              );
+            }
+            console.log("Feature Array is Ready!");
+          }
+        }
+      );
+
+      // Main Function for detection and display
+      async function onPlay() {
+        // Prepare for the overlaying of detection
+        const videoEl = document.getElementById("inputVideo");
+        const canvas = document.getElementById("overlay");
+        const displaySize = { width: canvas.width, height: canvas.height };
+        faceapi.matchDimensions(canvas, displaySize);
+
+        // Start detecting
+        const detection = await faceapi
+          .detectSingleFace(videoEl, new faceapi.SsdMobilenetv1Options())
+          .withFaceLandmarks()
+          // .withFaceExpressions()
+          // .withAgeAndGender()
+          .withFaceDescriptor();
+
+        // If a face have been detected
+        if (detection) {
+          var index_value = return_index_value(
+            main_feature_array,
+            detection.descriptor
+          );
+
+          document.getElementById("myDiv01").innerHTML =
+            "Facial Features : " + index_value + "<br>";
+
+          document.getElementById("mainheader").innerHTML =
+            " You Look Like " + index_value + "<br>";
+          document.getElementById("imageid").src = temp_image_url[index_value];
+
+          const resizedDetections = faceapi.resizeResults(
+            detection,
+            displaySize
+          );
+          faceapi.draw.drawDetections(canvas, resizedDetections);
+          faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+          // const { age, gender, genderProbability } = resizedDetections;
+          // interpolate gender predictions over last 30 frames
+          // to make the displayed age more stable
+          // const interpolatedAge = interpolateAgePredictions(age);
+          // new faceapi.draw.DrawTextField(
+          //   [
+          //     `${faceapi.utils.round(interpolatedAge, 0)} years`,
+          //     `${gender} (${faceapi.utils.round(genderProbability)})`
+          //   ],
+          //   detection.detection.box.bottomRight
+          // ).draw(canvas);
+
+          //const minProbability = 0.05;
+          //faceapi.draw.drawFaceExpressions(
+          //  canvas,
+          //  resizedDetections,
+          //  minProbability
+          //);
+        }
+        setTimeout(() => onPlay());
+      }
+
+      // Helper function
+      function interpolateAgePredictions(age) {
+        predictedAges = [age].concat(predictedAges).slice(0, 30);
+        const avgPredictedAge =
+          predictedAges.reduce((total, a) => total + a) / predictedAges.length;
+        return avgPredictedAge;
+      }
+
+      // Compare Function
+      function return_distance_value(array1, array2) {
+        var numbers = array1.map(function(item, index) {
+          return Math.pow(item - array2[index], 2);
+        });
+        const add = (a, b) => a + b;
+        const sum = Math.sqrt(numbers.reduce(add));
+        return sum;
+      }
+      function return_index_value(elements, search) {
+        var min_dist = 9999999999999;
+        var min_index = null;
+
+        elements.map(function(item, index) {
+          if (min_dist > return_distance_value(item, search)) {
+            min_index = index;
+            min_dist = return_distance_value(item, search);
+          }
+        });
+
+        return min_index;
+      }
+
+      // Load the weigths and start
+      async function load_weights() {
+        console.log(" [INFO] Starting");
+        let load1 = await faceapi.loadSsdMobilenetv1Model(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        let load2 = await faceapi.loadFaceLandmarkModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        await faceapi.loadFaceRecognitionModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        //         await faceapi.loadAgeGenderModel(
+        //           "https://jaedukseo.github.io/face_weights/"
+        //         );
+
+        //         await faceapi.loadFaceExpressionModel(
+        //           "https://jaedukseo.github.io/face_weights/"
+        //         );
+
+        console.log(load1, load2);
+        console.log(" [INFO] Model Ready ");
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        const videoEl = document.getElementById("inputVideo");
+        videoEl.srcObject = stream;
+      }
+
+      // After loading of all the models are done THEN start to run the model
+      async function run() {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        const videoEl = document.getElementById("inputVideo");
+        videoEl.srcObject = stream;
+      }
+    </script>
+  </body>
+</html>

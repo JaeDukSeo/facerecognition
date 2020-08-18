@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CodePen - Capture Screenshot with Javascript</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Capture Screenshot with JavaScript</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://unpkg.com/papaparse@5.2.0/papaparse.min.js"></script>
+    <script src="face-api.min.js"></script>
+  </head>
+
+  <body>
+    <!-- partial:index.partial.html -->
+    <div class="container-fluid px-0">
+      <div class="row mx-0 mt-3">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-body">
+              <h3 class="text-title text-center">Capture Screenshot</h3>
+              <p class=" text-center" id="loading">
+                Model loading.....
+              </p>
+              <div class="row mx-0">
+                <div class="col-md-6 text-center mt-4">
+                  <div class="camera">
+                    <video id="video">Video Stream not available</video>
+                  </div>
+                </div>
+                <div class="col-md-6 text-center mt-4">
+                  <div class="output">
+                    <img alt="Picture will appear here" id="picture" />
+                  </div>
+                  <p class=" text-center" id="Distances"></p>
+                </div>
+
+                <div class="col-md-12 text-center">
+                  <div>
+                    <button
+                      class="btn btn-primary shadow-none text-white my-3"
+                      id="takePictureBtn"
+                      disabled
+                    >
+                      Take Picture
+                    </button>
+                    <button
+                      class="btn btn-secondary shadow-none text-white my-3 "
+                      id="clearPictureBtn"
+                      disabled
+                    >
+                      Clear
+                    </button>
+                    <button
+                      class="btn btn-success shadow-none text-white my-3 "
+                      id="downloadPictureBtn"
+                      disabled
+                    >
+                      Download Picture
+                    </button>
+                    <input
+                      class="btn btn-warning shadow-none text-white my-3"
+                      id="uploadPictureBtn"
+                      type="file"
+                      multiple
+                      disabled
+                    />
+                  </div>
+                  <canvas id="canvas"></canvas>
+                </div>
+
+                <div class="col-md-4 text-center mt-4">
+                  <div class="output">
+                    <img alt="Picture will appear here" id="face1" />
+                    <p id="face1_details">Face 1 Details</p>
+                  </div>
+                </div>
+
+                <div class="col-md-4 text-center mt-4">
+                  <div class="output">
+                    <img alt="Picture will appear here" id="face2" />
+                    <p id="face2_details">Face 2 Details</p>
+                  </div>
+                </div>
+
+                <div class="col-md-4 text-center mt-4">
+                  <div class="output">
+                    <img alt="Picture will appear here" id="face3" />
+                    <p id="face3_details">Face 3 Details</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- partial -->
+    <script>
+      var width = 320;
+      var height = 0;
+      var streaming = false;
+      let video = document.querySelector("#video");
+      let canvas = document.querySelector("#canvas");
+      let picture = document.querySelector("#picture");
+      let takePictureBtn = document.querySelector("#takePictureBtn");
+      let downloadPictureBtn = document.querySelector("#downloadPictureBtn");
+      let clearPictureBtn = document.querySelector("#clearPictureBtn");
+      let uploadBtn = document.querySelector("#uploadPictureBtn");
+
+      let loading_text = document.querySelector("#loading");
+      let face1 = document.querySelector("#face1");
+      let face1_detail = document.querySelector("#face1_details");
+
+      let face2 = document.querySelector("#face2");
+      let face2_detail = document.querySelector("#face2_details");
+
+      let face3 = document.querySelector("#face3");
+      let face3_detail = document.querySelector("#face3_details");
+
+      let face_distance = document.querySelector("#Distances");
+
+      // Main variable needed to run the detection
+      var temp_image_url = {
+        1: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F1.jpg?v=1594348794335",
+        2: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F2.jpg?v=1594348798736",
+        3: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F3.jpg?v=1594348802983",
+        4: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F4.jpg?v=1594348795521",
+        5: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F5.jpg?v=1594348803506",
+        6: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F6.jpg?v=1594348804077",
+        7: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F7.jpg?v=1594348805187",
+        8: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F8.jpg?v=1594348805783",
+        9: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F9.jpg?v=1594348807264",
+        10: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F10.jpg?v=1594348807524",
+        11: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F11.jpg?v=1594348796291",
+        12: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F12.jpg?v=1594348807073",
+        13: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F13.jpg?v=1594348799403",
+        14: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F14.jpg?v=1594348799981",
+        15: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F15.jpg?v=1594348796224",
+        16: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F16.jpg?v=1594348795284",
+        17: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F17.jpg?v=1594348796716",
+        18: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F18.jpg?v=1594348800076",
+        19: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F19.jpg?v=1594348797417",
+        20: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F20.jpg?v=1594348795846",
+        21: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F21.jpg?v=1594348802314",
+        22: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F22.jpg?v=1594348797712",
+        23: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F23.jpg?v=1594348802427",
+        24: "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2F24.jpg?v=1594348804904"
+      };
+      var labels = [];
+      const maxDescriptorDistance = 0.9;
+      var faceMatcher, meta_data;
+      for (var key in temp_image_url) labels.push(key);
+
+      async function startup() {
+        clearPicture();
+        getMediaDevices();
+        videoEventListener();
+        parse_meta();
+      }
+
+      async function parse_meta() {
+        Papa.parse(
+          "https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2FBeta_annotations_24Faces.csv?v=1595338541815",
+          {
+            header: false,
+            download: true,
+            complete: function(results) {
+              console.log(results);
+              meta_data = results;
+
+              load_weights().then(() => {
+                var labeledFaceDescriptors = Promise.all(
+                  labels.map(async label => {
+                    loading_text.innerHTML =
+                      "Capturing Face Label " + label + ".....";
+
+                    console.log(" [INFO] Capturing : ", label);
+                    // fetch image data from urls and convert blob to HTMLImage element
+                    const img = await faceapi.fetchImage(temp_image_url[label]);
+
+                    // detect the face with the highest score in the image and compute it's landmarks and face descriptor
+                    const fullFaceDescription = await faceapi
+                      .detectSingleFace(img)
+                      .withFaceLandmarks()
+                      .withFaceDescriptor();
+
+                    if (!fullFaceDescription)
+                      throw new Error("no faces detected!");
+                    const faceDescriptors = [fullFaceDescription.descriptor];
+                    return new faceapi.LabeledFaceDescriptors(
+                      label,
+                      faceDescriptors
+                    );
+                  })
+                ).then(function(data) {
+                  loading_text.innerHTML = "Creating Face Matcher Model...";
+
+                  console.log(" [INFO] Loaded all of the face models ");
+                  faceMatcher = new faceapi.FaceMatcher(
+                    data,
+                    maxDescriptorDistance
+                  );
+
+                  loading_text.innerHTML =
+                    "Model Ready! Please Take a picture to start!";
+                  takePictureBtn.disabled = false;
+                  downloadPictureBtn.disabled = false;
+                  clearPictureBtn.disabled = false;
+                  uploadBtn.disabled = false;
+                  takePictureBtnEventListener();
+                });
+              });
+            }
+          }
+        );
+      }
+
+      async function load_weights() {
+        console.log(" [Loading Model 1/3] ");
+        loading_text.innerHTML = "Loading Model 1 .....";
+        await faceapi.loadSsdMobilenetv1Model(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        console.log(" [Loading Model 2/3] ");
+        loading_text.innerHTML = "Loading Model 2 .....";
+
+        await faceapi.loadFaceLandmarkModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        console.log(" [Loading Model 3/3] ");
+        loading_text.innerHTML = "Loading Model 3 .....";
+
+        await faceapi.loadFaceRecognitionModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+      }
+      function getMediaDevices() {
+        navigator.mediaDevices
+          .getUserMedia({
+            video: true
+          })
+          .then(stream => {
+            // pass stream object to video src
+            video.srcObject = stream;
+            // play video
+            video.play();
+          })
+          .catch(err => {
+            alert("Error occured: ", err);
+          });
+      }
+      function videoEventListener() {
+        video.addEventListener(
+          "canplay",
+          event => {
+            // check if streaming is false (i.e if we're already streaming or not)
+            if (!streaming) {
+              // set height of video container
+              height = video.videoHeight / (video.videoWidth / width);
+
+              // if height is invalid number then set height manually
+              if (isNaN(height)) {
+                height = width / (4 / 3);
+              }
+
+              video.setAttribute("width", width);
+              video.setAttribute("height", height);
+              canvas.setAttribute("width", width);
+              canvas.setAttribute("height", height);
+              streaming = true;
+            }
+          },
+          // event is in bubbling phase
+          false
+        );
+      }
+      function takePictureBtnEventListener() {
+        console.log(takePictureBtn);
+        takePictureBtn.addEventListener(
+          "click",
+          event => {
+            event.preventDefault();
+            takePicture();
+          },
+          false
+        );
+      }
+
+      // clear picture
+      function clearPicture() {
+        let context = canvas.getContext("2d");
+        context.fillStyle = "#AAA";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        let data = canvas.toDataURL("image/png");
+        picture.setAttribute("src", data);
+        face1.setAttribute("src", data);
+        face2.setAttribute("src", data);
+        face3.setAttribute("src", data);
+      }
+
+      // take picture
+      function takePicture() {
+        let context = canvas.getContext("2d");
+        if (width && height) {
+          canvas.width = width;
+          canvas.height = height;
+          // draw image on canvas captured from video streaming
+          context.drawImage(video, 0, 0, width, height);
+
+          // encode screenshot captured
+          let data = canvas.toDataURL("image/png");
+
+          // pass encoded url to picture's src attribute
+          picture.setAttribute("src", data);
+          compare_show(data);
+        } else {
+          clearPicture();
+        }
+      }
+
+      async function compare_show(img) {
+        var top_three = {};
+        const img_detect = await faceapi.fetchImage(img);
+        const detection = await faceapi
+          .detectSingleFace(img_detect, new faceapi.SsdMobilenetv1Options())
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        // If a face have been detected
+        if (detection) {
+          // Compute the distance for all features
+          faceMatcher.labeledDescriptors.map(({ descriptors, label }) => {
+            top_three[label] = faceMatcher.computeMeanDistance(
+              detection.descriptor,
+              descriptors
+            );
+          });
+
+          // Create items array and compute the top 3
+          var items = Object.keys(top_three).map(function(key) {
+            return [key, top_three[key]];
+          });
+          items.sort(function(first, second) {
+            return first[1] - second[1];
+          });
+          top_three = items.slice(0, 3);
+          console.log(top_three);
+
+          var temp_text =
+            " Top 1 " +
+            top_three[0][0] +
+            " Distance: " +
+            top_three[0][1] +
+            "<br/>" +
+            " Top 2 " +
+            top_three[1][0] +
+            " Distance: " +
+            top_three[1][1] +
+            "<br/>" +
+            " Top 3 " +
+            top_three[2][0] +
+            " Distance: " +
+            top_three[2][1] +
+            "<br/>";
+          face_distance.innerHTML = temp_text;
+
+          face1.src = temp_image_url[top_three[0][0]];
+          face1_detail.innerHTML = JSON.stringify(
+            meta_data.data[top_three[0][0]],
+            null,
+            4
+          );
+
+          face2.src = temp_image_url[top_three[1][0]];
+          face2_detail.innerHTML = JSON.stringify(
+            meta_data.data[top_three[1][0]],
+            null,
+            4
+          );
+
+          face3.src = temp_image_url[top_three[2][0]];
+          face3_detail.innerHTML = JSON.stringify(
+            meta_data.data[top_three[2][0]],
+            null,
+            4
+          );
+        } else {
+          alert("No Face Detected Please Take another Photo!");
+        }
+      }
+
+      const toBase64 = file =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+        });
+
+      uploadBtn.addEventListener("click", event => {
+        //Check File API support
+        if (window.File && window.FileList && window.FileReader) {
+          var filesInput = document.getElementById("uploadPictureBtn");
+          filesInput.addEventListener("change", async function(event) {
+            temp_image_url = {};
+            var labels = [];
+            var files = event.target.files; //FileList object
+            var output = document.getElementById("result");
+            for (var i = 0; i < files.length; i++) {
+              console.log(" [INFO] Processing Uploaded Image : ",i)
+              loading_text.innerHTML = "Processing Uploaded Image : " + i
+              var file = files[i];
+              if (!file.type.match("image")) continue;
+              temp_image_url[i] = await toBase64(file);
+            }
+                                      
+            for (var key in temp_image_url) labels.push(key);
+            console.log(temp_image_url);
+            console.log(labels);
+            var labeledFaceDescriptors = Promise.all(
+              labels.map(async label => {
+                console.log(" [INFO] Capturing : ", label);
+                // fetch image data from urls and convert blob to HTMLImage element
+                const img = await faceapi.fetchImage(temp_image_url[label]);
+
+                // detect the face with the highest score in the image and compute it's landmarks and face descriptor
+                const fullFaceDescription = await faceapi
+                  .detectSingleFace(img)
+                  .withFaceLandmarks()
+                  .withFaceDescriptor();
+
+                if (!fullFaceDescription) throw new Error("no faces detected!");
+                const faceDescriptors = [fullFaceDescription.descriptor];
+                return new faceapi.LabeledFaceDescriptors(
+                  label,
+                  faceDescriptors
+                );
+              })
+            ).then(function(data) {
+              console.log(" [INFO] Loaded all of the face models uploaded ");
+              loading_text.innerHTML = " Loaded all of the face models uploaded ";
+              faceMatcher = new faceapi.FaceMatcher(data,maxDescriptorDistance);
+            });
+          });
+        } else {
+          console.log("Your browser does not support File API");
+        }
+      });
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      // Clear Picture of the site
+      clearPictureBtn.addEventListener("click", event => {
+        clearPicture();
+      });
+      
+      // on click of download btn encode scrennshot and convert it to octet stream. Then create `a` element and finally download screenshot.
+      downloadPictureBtn.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        let image = canvas
+          .toDataURL("image/png", 1.0)
+          .replace("image/png", "image/octet-stream");
+
+        let link = document.createElement("a");
+        link.download = "me.png";
+        link.href = image;
+        link.click();
+      });
+
+      // on page load call load function in bubbling phase
+      window.addEventListener("load", startup, false);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,135 @@
+
+
+#hand-app {
+    background-image: url(https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Fhand-fire-bg.jpg?v=1595472826135);
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: black;
+    height: 100vh;
+}
+
+#app-panel{
+    background-color: black;
+}
+
+.webcam-container{
+    background: black;
+}
+
+#webcam {
+    height: 100vh;
+}
+
+#canvas{
+    background-color: transparent;
+    position: absolute;
+    height: 100vh;
+    z-index: 99999;
+    margin: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.loading{
+    position: fixed;
+    top: 35%;
+    left: 42%;
+    z-index:300000;
+    border: white 1px;
+    color: white;
+    padding: 75px 26px;
+    font-size: 22px;
+}
+
+.spinner-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    color: white;
+    z-index:300000;
+    filter: alpha(opacity=80);
+    -moz-opacity: 0.8;
+    opacity: 0.8;   
+  }
+
+.fire {
+    width: 300px;
+    height: 300px;
+    background-image: url(https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Ffire.gif?v=1595472824823);
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin: auto;
+    position: absolute;
+    margin: auto;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.fire_in_hand {
+    width: 300px;
+    height: 300px;
+    background-image: url(https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Ffire.gif?v=1595472824823);
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+@media screen and (max-width: 757px) {
+    .fire {
+        margin-top: 100px;
+        width: 300px;
+        height: 300px;
+    }
+
+    .loading{
+        position: fixed;
+        left: 30%;
+        padding: 55px 12px;
+        font-size: large;
+    }
+    .spinner-border{
+        width: 150px;
+        height: 150px;
+    }
+}
+
+@media screen and (min-width: 420px) and (max-width: 757px) {
+    .fire_in_hand {
+        width: 200px;
+        height: 200px;
+    }
+}
+
+
+
+@media screen and (min-width: 758px) and (max-width: 1024px) {
+    .fire {
+        margin-top: 100px;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    #hand-app {
+        background-image: url(https://cdn.glitch.com/4f2917f5-212e-426b-9f8b-db9886bfbc92%2Fhand-fire-mobile-bg.jpg?v=1595472824167);
+        width: 100vw;
+        height: 100vh;
+    }
+}
+
+.dot {
+    height: 10px;
+    width: 10px;
+    background-color: blue;
+    border-radius: 50%;
+    display: inline-block;
+    z-index: 999999;
+  }
