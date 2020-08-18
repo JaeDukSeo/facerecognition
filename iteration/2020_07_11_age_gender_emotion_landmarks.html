@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="face-api.min.js"></script>
+  </head>
+
+  <body>
+    <h3 align="center">
+      Please wait 3 seconds before clicking run
+    </h3>
+
+    <div id="myDiv01">
+      Please run the application <br />
+      First LOAD the MODEL then run! (SINGLE FACE)
+    </div>
+    <br /><br />
+
+    <input type="button" value="load model" onclick="{ load_weights() }" />
+    <br /><br />
+
+    <input
+      type="button"
+      id="run_model"
+      value="run"
+      onclick="{ run() }"
+      disabled="true"
+    />
+    <br /><br />
+
+    <video
+      onplay="onPlay(this)"
+      id="inputVideo"
+      autoplay
+      muted
+      width="640"
+      height="480"
+      style=" border: 1px solid #ddd;"
+    ></video>
+    <br />
+
+    <canvas
+      id="overlay"
+      width="640"
+      height="480"
+      style="position:relative; top:-487px; border: 1px solid #ddd;"
+    ></canvas>
+    <br />
+
+    <script>
+      let predictedAges = [];
+
+      // Main Function for detection and display
+      async function onPlay() {
+        // Prepare for the overlaying of detection
+        const videoEl = document.getElementById("inputVideo");
+        const canvas = document.getElementById("overlay");
+        const displaySize = { width: canvas.width, height: canvas.height };
+        faceapi.matchDimensions(canvas, displaySize);
+
+        // Start detecting
+        const detection = await faceapi
+          .detectSingleFace(videoEl, new faceapi.SsdMobilenetv1Options())
+          .withFaceLandmarks()
+          .withFaceExpressions()
+          .withAgeAndGender()
+          .withFaceDescriptor();
+
+        // If a face have been detected
+        if (detection) {
+          document.getElementById("myDiv01").innerHTML =
+            "Facial Features : " + detection.descriptor + "<br>";
+          const resizedDetections = faceapi.resizeResults(
+            detection,
+            displaySize
+          );
+
+          const { age, gender, genderProbability } = resizedDetections;
+          // interpolate gender predictions over last 30 frames
+          // to make the displayed age more stable
+          const interpolatedAge = interpolateAgePredictions(age);
+          new faceapi.draw.DrawTextField(
+            [
+              `${faceapi.utils.round(interpolatedAge, 0)} years`,
+              `${gender} (${faceapi.utils.round(genderProbability)})`
+            ],
+            detection.detection.box.bottomRight
+          ).draw(canvas);
+
+          faceapi.draw.drawDetections(canvas, resizedDetections);
+          faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+          const minProbability = 0.05;
+          faceapi.draw.drawFaceExpressions(
+            canvas,
+            resizedDetections,
+            minProbability
+          );
+        }
+
+        setTimeout(() => onPlay());
+      }
+
+      function interpolateAgePredictions(age) {
+        predictedAges = [age].concat(predictedAges).slice(0, 30);
+        const avgPredictedAge =
+          predictedAges.reduce((total, a) => total + a) / predictedAges.length;
+        return avgPredictedAge;
+      }
+
+      async function load_weights() {
+        console.log(faceapi.draw);
+
+        let load1 = await faceapi.loadSsdMobilenetv1Model(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        let load2 = await faceapi.loadFaceLandmarkModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        let load3 = await faceapi.loadFaceRecognitionModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        await faceapi.loadAgeGenderModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        await faceapi.loadFaceExpressionModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        console.log(load1);
+        console.log(load2);
+        console.log(load3);
+
+        console.log(" [INFO] Model Ready ");
+        let run_model_button = document.getElementById("run_model");
+        run_model_button.disabled = false;
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        const videoEl = document.getElementById("inputVideo");
+        videoEl.srcObject = stream;
+      }
+
+      // After loading of all the models are done THEN start to run the model
+      async function run() {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        const videoEl = document.getElementById("inputVideo");
+        videoEl.srcObject = stream;
+      }
+    </script>
+  </body>
+</html>

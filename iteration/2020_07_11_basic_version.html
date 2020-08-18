@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!--     <script src="https://www.rocksetta.com/tensorflowjs/saved-models/face-api-js/face-api.js"></script> -->
+    <script src="face-api.min.js"></script>
+  </head>
+
+  <body>
+    <h3 align="center">
+      Please wait 3 seconds before clicking run
+    </h3>
+
+    <div id="myDiv01">Please run the application (SINGLE FACE)</div>
+    <br /><br />
+
+    <input type="button" value="run" onclick="{ run() }" />
+    <br /><br />
+
+    <input type="button" value="load model" onclick="{ load_weights() }" />
+    <br /><br />
+
+    <video
+      onplay="onPlay(this)"
+      id="inputVideo"
+      autoplay
+      muted
+      width="640"
+      height="480"
+      style=" border: 1px solid #ddd;"
+    ></video>
+    <br />
+
+    <canvas
+      id="overlay"
+      width="640"
+      height="480"
+      style="position:relative; top:-487px; border: 1px solid #ddd;"
+    ></canvas>
+    <br />
+
+    <script>
+      ////////////////////////// A few helper functions ///////////////////////////////////////////
+
+      function resizeCanvasAndResults(dimensions, canvas, results) {
+        const { width, height } =
+          dimensions instanceof HTMLVideoElement
+            ? faceapi.getMediaDimensions(dimensions)
+            : dimensions;
+        canvas.width = width;
+        canvas.height = height;
+
+        return results.map(res => res.forSize(width, height));
+      }
+
+      function drawDetections(dimensions, canvas, detections) {
+        const resizedDetections = resizeCanvasAndResults(
+          dimensions,
+          canvas,
+          detections
+        );
+        faceapi.drawDetection(canvas, resizedDetections);
+      }
+
+      function drawLandmarks(dimensions, canvas, results, withBoxes = true) {
+        const resizedResults = resizeCanvasAndResults(
+          dimensions,
+          canvas,
+          results
+        );
+        if (withBoxes) {
+          faceapi.drawDetection(
+            canvas,
+            resizedResults.map(det => det.detection)
+          );
+        }
+        const faceLandmarks = resizedResults.map(det => det.landmarks);
+        const drawLandmarksOptions = {
+          lineWidth: 2,
+          drawLines: true,
+          color: "green"
+        };
+        faceapi.drawLandmarks(canvas, faceLandmarks, drawLandmarksOptions);
+      }
+
+      ////////////////////////// The 2 Main functions ///////////////////////////////////////////
+      async function onPlay() {
+        const videoEl = document.getElementById("inputVideo");
+        // const options = new faceapi.TinyFaceDetectorOptions({
+        //   inputSize: 128,
+        //   scoreThreshold: 0.3
+        // });
+
+        //
+        console.log("===========================");
+        const detection = await faceapi
+          .detectSingleFace(videoEl, new faceapi.SsdMobilenetv1Options())
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+        console.log(detection);
+        console.log("===========================");
+        //
+
+        if (detection) {
+                    document.getElementById("myDiv01").innerHTML =
+                      "Facial Features : " +
+                      detection.descriptor + 
+                      "<br>";
+        }
+
+        // ======== OG CODE ========
+        //         result = await faceapi
+        //           .detectSingleFace(videoEl, options)
+        //           .withFaceLandmarks()
+        //           .withFaceDescriptors();
+
+        //         if (result) {
+        //           drawLandmarks(
+        //             videoEl,
+        //             document.getElementById("overlay"),
+        //             [result],
+        //             true
+        //           );
+
+        //           // Just printing the first of 68 face landmark x and y
+        //           document.getElementById("myDiv01").innerHTML =
+        //             "First of 68 face landmarks, x: " +
+        //             Math.round(result._unshiftedLandmarks._positions[0]._x) +
+        //             ", y: " +
+        //             Math.round(result._unshiftedLandmarks._positions[0]._y) +
+        //             "<br>";
+        //         }
+        // ======== OG CODE ========
+
+        setTimeout(() => onPlay());
+      }
+
+      async function load_weights() {
+        console.log(faceapi);
+        let load1 = await faceapi.loadSsdMobilenetv1Model(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        let load2 = await faceapi.loadTinyFaceDetectorModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        let load3 = await faceapi.loadFaceLandmarkTinyModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        console.log(load1);
+        console.log(load2);
+        console.log(load3);
+      }
+
+      async function run() {
+        console.log(faceapi);
+        await faceapi.loadSsdMobilenetv1Model(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        await faceapi.loadFaceLandmarkModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+        await faceapi.loadFaceRecognitionModel(
+          "https://jaedukseo.github.io/face_weights/"
+        );
+
+        // await faceapi.loadTinyFaceDetectorModel(
+        //   "https://jaedukseo.github.io/face_weights/"
+        // );
+        // await faceapi.loadFaceLandmarkTinyModel(
+        //   "https://jaedukseo.github.io/face_weights/"
+        // );
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        const videoEl = document.getElementById("inputVideo");
+        videoEl.srcObject = stream;
+      }
+    </script>
+  </body>
+</html>
